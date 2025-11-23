@@ -1,0 +1,254 @@
+{% extends 'monitor/base.html' %}
+
+{% block title %}{{ website.name }} - Details{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>
+            <i class="bi bi-graph-up"></i> {{ website.name }}
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary float-end">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <button class="btn btn-primary float-end me-2" onclick="checkWebsite()">
+                <i class="bi bi-arrow-clockwise"></i> Check Now
+            </button>
+        </h2>
+        <p class="text-muted">{{ website.url }}</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Current Status</h5>
+                <h3>
+                    <span class="badge badge-{{ website.current_status }}" id="current-status">
+                        {% if website.current_status == 'up' %}<i class="bi bi-check-circle"></i> UP
+                        {% elif website.current_status == 'down' %}<i class="bi bi-x-circle"></i> DOWN
+                        {% elif website.current_status == 'degraded' %}<i class="bi bi-exclamation-triangle"></i> DEGRADED
+                        {% else %}<i class="bi bi-question-circle"></i> UNKNOWN{% endif %}
+                    </span>
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Avg Response Time</h5>
+                <h3 id="avg-response">{{ avg_response_time }} ms</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Uptime (24h)</h5>
+                <h3 id="uptime">{{ uptime_percentage }}%</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Last Check</h5>
+                <p id="last-check">{% if website.last_check_time %}{{ website.last_check_time|date:"Y-m-d H:i:s" }}{% else %}Never{% endif %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up-arrow"></i> Response Time (Last 24 Hours)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="responseTimeChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-activity"></i> Status History (Last 24 Hours)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="60"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-clock-history"></i> Recent Health Checks</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Status Code</th>
+                                <th>Response Time</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for check in recent_checks %}
+                            <tr>
+                                <td>{{ check.checked_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>
+                                    {% if check.is_up %}
+                                        <span class="badge bg-success">UP</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">DOWN</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ check.status_code|default:"-" }}</td>
+                                <td>{{ check.response_time|floatformat:2 }} ms</td>
+                                <td>{{ check.error_message|default:"-"|truncatechars:50 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center">No health checks yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chartData = {{ chart_data|safe }};
+
+    const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+    const responseTimeChart = new Chart(responseTimeCtx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Response Time (ms)',
+                data: chartData.response_times,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Response Time (ms)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
+            }
+        }
+    });
+
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Status (1=Up, 0=Down)',
+                data: chartData.status,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                stepped: true,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            return value === 1 ? 'Up' : 'Down';
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
+            }
+        }
+    });
+
+    function checkWebsite() {
+        const button = event.target.closest('button');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
+
+        fetch(`/api/check/{{ website.id }}/`)
+            .then(response => response.json())
+            .then(data => {
+                const statusBadge = document.getElementById('current-status');
+                statusBadge.className = `badge badge-${data.status}`;
+                if (data.is_up) {
+                    statusBadge.innerHTML = '<i class="bi bi-check-circle"></i> UP';
+                } else {
+                    statusBadge.innerHTML = '<i class="bi bi-x-circle"></i> DOWN';
+                }
+
+                document.getElementById('last-check').textContent = new Date(data.last_check_time).toLocaleString();
+                
+                showToast(`Checked ${data.name}: ${data.is_up ? 'UP' : 'DOWN'}`, data.is_up ? 'success' : 'danger');
+                
+                setTimeout(() => location.reload(), 1500);
+            })
+            .catch(error => {
+                showToast('Error checking website: ' + error, 'danger');
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Check Now';
+            });
+    }
+</script>
+{% endblock %}

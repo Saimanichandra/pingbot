@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+.env
+local_settings.py
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+.pythonlibs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Replit
+.replit
+.config/
+.upm/
+.cache/
+
+# Temporary
+/tmp/
+*.tmp

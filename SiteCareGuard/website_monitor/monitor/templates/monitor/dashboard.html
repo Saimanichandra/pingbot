@@ -1,0 +1,232 @@
+{% extends 'monitor/base.html' %}
+
+{% block title %}Dashboard - Website Health Monitor{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>
+            <i class="bi bi-speedometer2"></i> Website Health Dashboard
+            <button class="btn btn-primary float-end" onclick="checkAllWebsites(event)">
+                <i class="bi bi-arrow-clockwise"></i> Check All Now
+            </button>
+        </h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-globe"></i> Total Websites</h5>
+                <h2>{{ total_websites }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-check-circle"></i> Up</h5>
+                <h2>{{ up_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-x-circle"></i> Down</h5>
+                <h2>{{ down_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <label for="autoRefreshInterval">Auto-Refresh:</label>
+        <select id="autoRefreshInterval" class="form-select w-auto d-inline-block ms-2">
+            <option value="0">Off</option>
+            <option value="30">30 seconds</option>
+            <option value="60" selected>1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="300">5 minutes</option>
+        </select>
+        <span id="refreshStatus" class="ms-3 text-muted"></span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h3>Monitored Websites</h3>
+        
+        {% if websites %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Name</th>
+                        <th>URL</th>
+                        <th>Last Check</th>
+                        <th>Response Time</th>
+                        <th>Status Code</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="websiteTableBody">
+                    {% for website in websites %}
+                    <tr id="website-{{ website.id }}">
+                        <td>
+                            <span class="badge badge-{{ website.current_status }}">
+                                {% if website.current_status == 'up' %}<i class="bi bi-check-circle"></i> UP
+                                {% elif website.current_status == 'down' %}<i class="bi bi-x-circle"></i> DOWN
+                                {% elif website.current_status == 'degraded' %}<i class="bi bi-exclamation-triangle"></i> DEGRADED
+                                {% else %}<i class="bi bi-question-circle"></i> UNKNOWN{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ website.name }}</td>
+                        <td><a href="{{ website.url }}" target="_blank">{{ website.url|truncatechars:50 }}</a></td>
+                        <td class="last-check">{% if website.last_check_time %}{{ website.last_check_time|date:"Y-m-d H:i:s" }}{% else %}Never{% endif %}</td>
+                        <td class="response-time">{% if website.last_response_time %}{{ website.last_response_time|floatformat:2 }} ms{% else %}-{% endif %}</td>
+                        <td class="status-code">-</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="checkWebsite({{ website.id }}, event)">
+                                <i class="bi bi-arrow-clockwise"></i> Check
+                            </button>
+                            <a href="{% url 'website_detail' website.id %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-graph-up"></i> Details
+                            </a>
+                            <a href="{% url 'edit_website' website.id %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'delete_website' website.id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No websites are being monitored yet. 
+            <a href="{% url 'add_website' %}" class="alert-link">Add your first website</a> to get started.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let autoRefreshTimer = null;
+
+    function updateWebsiteRow(data) {
+        const row = document.getElementById(`website-${data.id}`);
+        if (!row) return;
+
+        const statusBadge = row.querySelector('.badge');
+        const lastCheck = row.querySelector('.last-check');
+        const responseTime = row.querySelector('.response-time');
+        const statusCode = row.querySelector('.status-code');
+
+        statusBadge.className = `badge badge-${data.status}`;
+        if (data.is_up) {
+            statusBadge.innerHTML = '<i class="bi bi-check-circle"></i> UP';
+        } else {
+            statusBadge.innerHTML = '<i class="bi bi-x-circle"></i> DOWN';
+        }
+
+        lastCheck.textContent = new Date(data.last_check_time).toLocaleString();
+        responseTime.textContent = data.response_time ? `${data.response_time} ms` : '-';
+        statusCode.textContent = data.status_code || '-';
+
+        row.classList.add('pulse');
+        setTimeout(() => row.classList.remove('pulse'), 1000);
+    }
+
+    function checkWebsite(websiteId, event) {
+        let button = null;
+        if (event) {
+            button = event.target.closest('button');
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking...';
+        }
+
+        fetch(`/api/check/${websiteId}/`)
+            .then(response => response.json())
+            .then(data => {
+                updateWebsiteRow(data);
+                showToast(`Checked ${data.name}: ${data.is_up ? 'UP' : 'DOWN'}`, data.is_up ? 'success' : 'danger');
+            })
+            .catch(error => {
+                showToast('Error checking website: ' + error, 'danger');
+            })
+            .finally(() => {
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Check';
+                }
+            });
+    }
+
+    function checkAllWebsites(event) {
+        let button = null;
+        if (event) {
+            button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Checking All...';
+        }
+
+        fetch('/api/check-all/')
+            .then(response => response.json())
+            .then(data => {
+                data.websites.forEach(website => {
+                    updateWebsiteRow(website);
+                });
+                if (!event) {
+                    console.log(`Auto-checked ${data.websites.length} websites`);
+                } else {
+                    showToast(`Checked ${data.websites.length} websites`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking websites:', error);
+                if (event) {
+                    showToast('Error checking websites: ' + error, 'danger');
+                }
+            })
+            .finally(() => {
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Check All Now';
+                }
+            });
+    }
+
+    function setupAutoRefresh() {
+        const select = document.getElementById('autoRefreshInterval');
+        const statusSpan = document.getElementById('refreshStatus');
+
+        select.addEventListener('change', function() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+            }
+
+            const interval = parseInt(this.value);
+            if (interval > 0) {
+                statusSpan.textContent = `Auto-refreshing every ${interval} seconds`;
+                autoRefreshTimer = setInterval(checkAllWebsites, interval * 1000);
+            } else {
+                statusSpan.textContent = '';
+            }
+        });
+
+        select.dispatchEvent(new Event('change'));
+    }
+
+    setupAutoRefresh();
+</script>
+{% endblock %}

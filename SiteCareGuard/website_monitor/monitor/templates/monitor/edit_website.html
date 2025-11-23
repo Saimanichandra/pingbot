@@ -1,0 +1,73 @@
+{% extends 'monitor/base.html' %}
+
+{% block title %}Edit Website{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="bi bi-pencil"></i> Edit Website</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Website Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ website.name }}" required>
+                        <div class="form-text">A friendly name to identify this website</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="url" class="form-label">URL *</label>
+                        <input type="url" class="form-control" id="url" name="url" 
+                               value="{{ website.url }}" required>
+                        <div class="form-text">Full URL including http:// or https://</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="check_interval" class="form-label">Check Interval (seconds)</label>
+                        <input type="number" class="form-control" id="check_interval" name="check_interval" 
+                               value="{{ website.check_interval }}" min="30" max="3600">
+                        <div class="form-text">How often to check this website (30-3600 seconds)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="timeout" class="form-label">Timeout (seconds)</label>
+                        <input type="number" class="form-control" id="timeout" name="timeout" 
+                               value="{{ website.timeout }}" min="5" max="60">
+                        <div class="form-text">Request timeout (5-60 seconds)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="expected_status_code" class="form-label">Expected Status Code</label>
+                        <input type="number" class="form-control" id="expected_status_code" 
+                               name="expected_status_code" value="{{ website.expected_status_code }}" 
+                               min="100" max="599">
+                        <div class="form-text">Expected HTTP status code (usually 200)</div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                               {% if website.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">
+                            Active (uncheck to pause monitoring)
+                        </label>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

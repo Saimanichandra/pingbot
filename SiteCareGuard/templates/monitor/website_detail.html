@@ -1,0 +1,157 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ website.name }} - Performance Details</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f6f8fa;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2a9d8f;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: #fff;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 220px;
+            margin: 10px;
+        }
+        .stat-box h3 {
+            margin: 0;
+            color: #264653;
+        }
+        canvas {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #2a9d8f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 {{ website.name }} - Real-Time Monitoring</h1>
+    <p style="text-align: center; color: #666; font-size: 14px;">🕐 {{ time_range }} • Auto-refreshes every 30 seconds</p>
+
+    <div class="stats">
+        <div class="stat-box">
+            <h3>Average Response</h3>
+            <p><strong>{{ avg_response_time }} ms</strong></p>
+        </div>
+        <div class="stat-box">
+            <h3>Uptime (24h)</h3>
+            <p><strong>{{ uptime_percentage }}%</strong></p>
+        </div>
+        <div class="stat-box">
+            <h3>Current Status</h3>
+            {% if website.current_status == 'up' %}
+                <p style="color: green;"><strong>🟢 UP</strong></p>
+            {% elif website.current_status == 'down' %}
+                <p style="color: red;"><strong>🔴 DOWN</strong></p>
+            {% else %}
+                <p style="color: orange;"><strong>🟡 DEGRADED</strong></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <canvas id="responseChart" height="100"></canvas>
+
+    <a class="back-link" href="{% url 'dashboard' %}">← Back to Dashboard</a>
+
+    <script>
+    const ctx = document.getElementById('responseChart').getContext('2d');
+
+    let responseChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Ping Response Time (ms)',
+                data: [],
+                borderWidth: 2,
+                fill: false,
+                borderColor: '#2a9d8f',
+                pointRadius: 5,
+                pointBackgroundColor: [],
+                tension: 0.25
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const response = context.parsed.y;
+                            const time = context.label;
+                            const statusColor = context.dataset.pointBackgroundColor[context.dataIndex];
+                            const status = statusColor === '#2a9d8f' ? 'UP' : 'DOWN';
+                            return `${time} → ${response} ms (${status})`;
+                        }
+                    }
+                },
+                legend: { display: true }
+            },
+            scales: {
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Response Time (ms)'
+                    },
+                    beginAtZero: true
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
+            }
+        }
+    });
+
+    function fetchData() {
+        fetch("{% url 'website_data' website.id %}")
+            .then(response => response.json())
+            .then(data => {
+                responseChart.data.labels = data.labels;
+                responseChart.data.datasets[0].data = data.response_times;
+                responseChart.data.datasets[0].pointBackgroundColor = data.statuses.map(status =>
+                    status === 1 ? '#2a9d8f' : '#e63946' // green for up, red for down
+                );
+                responseChart.update();
+            })
+            .catch(err => console.error("Error loading chart data:", err));
+    }
+
+    // Initial load + auto refresh every 30s
+    fetchData();
+    setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>

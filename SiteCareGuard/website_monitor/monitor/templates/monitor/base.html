@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Website Health Monitor{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .status-up { color: #28a745; }
+        .status-down { color: #dc3545; }
+        .status-degraded { color: #ffc107; }
+        .status-unknown { color: #6c757d; }
+        .badge-up { background-color: #28a745; }
+        .badge-down { background-color: #dc3545; }
+        .badge-degraded { background-color: #ffc107; }
+        .badge-unknown { background-color: #6c757d; }
+        .card { margin-bottom: 20px; }
+        .alert-toast { position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; }
+        .pulse { animation: pulse-animation 2s infinite; }
+        @keyframes pulse-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="bi bi-heart-pulse"></i> Website Health Monitor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'add_website' %}">
+                            <i class="bi bi-plus-circle"></i> Add Website
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link" id="alert-badge">
+                            <i class="bi bi-bell"></i> Alerts <span class="badge bg-danger" id="alert-count">0</span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <div id="alert-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showToast(message, type = 'info') {
+            const toastHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show alert-toast" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            document.getElementById('alert-container').insertAdjacentHTML('beforeend', toastHtml);
+            
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.alert-toast');
+                if (alerts.length > 0) {
+                    alerts[0].remove();
+                }
+            }, 5000);
+        }
+
+        function checkAlerts() {
+            fetch('/api/alerts/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('alert-count').textContent = data.count;
+                    
+                    if (data.alerts && data.alerts.length > 0) {
+                        data.alerts.forEach(alert => {
+                            const alertType = alert.type === 'down' ? 'danger' : alert.type === 'up' ? 'success' : 'warning';
+                            showToast(alert.message, alertType);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error checking alerts:', error));
+        }
+
+        checkAlerts();
+        setInterval(checkAlerts, 30000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
