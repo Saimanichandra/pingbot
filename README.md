@@ -1,3 +1,5 @@
+...content from GitHub...
+>>>>>>> origin/main
 # 🌐 SiteCareGuard – Website Health Monitor (Email + SMS Alerts)
 
 This Django project monitors website uptime and sends **Email and Twilio SMS alerts** when a site is **down for more than 2 minutes**, then notifies again when it recovers.
@@ -141,3 +143,7 @@ requests
 ## 🧑‍💻 Author
 **Sai Mani**  
 A simple, production-ready website monitoring tool built in Django.
+=======
+# AIORI-2-HACKATHON-PROJECTS
+This repository will contain the code and resources for the AIORI-2 hackathon that will be developed during the AIORI-2
+>>>>>>> a68ab50d5ebd8e37133e61f775240cdc823818cf
