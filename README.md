@@ -10,7 +10,8 @@ This Django project monitors website uptime and sends **Email and Twilio SMS ale
 - Periodic health checks (via `django-crontab`, every 1 minute)
 - Alerts via **Email** and **Twilio SMS**
 - Auto-seeded demo sites (`Google`, `Example`, `InvalidSite`)
-- No Celery / No Redis – fully self-contained
+-  Celery
+- Redis
 
 ---
 
