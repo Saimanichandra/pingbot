@@ -1,6 +1,6 @@
 ...content from GitHub...
 >>>>>>> origin/main
- Website Health Monitor (Email + SMS Alerts)
+ # Website Health Monitor (Email + SMS Alerts)
 
 This Django project monitors website uptime and sends **Email and Twilio SMS alerts** when a site is **down for more than 2 minutes**, then notifies again when it recovers.
 
