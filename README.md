@@ -1,13 +1,13 @@
 ...content from GitHub...
 >>>>>>> origin/main
-# 🌐 SiteCareGuard – Website Health Monitor (Email + SMS Alerts)
+ Website Health Monitor (Email + SMS Alerts)
 
 This Django project monitors website uptime and sends **Email and Twilio SMS alerts** when a site is **down for more than 2 minutes**, then notifies again when it recovers.
 
 ---
 
 ## 🚀 Features
-- Periodic health checks (via `django-crontab`, every 1 minute)
+- Periodic health checks (via `django-crontab`)
 - Alerts via **Email** and **Twilio SMS**
 - Auto-seeded demo sites (`Google`, `Example`, `InvalidSite`)
 -  Celery
