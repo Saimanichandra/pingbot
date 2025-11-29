@@ -179,11 +179,11 @@ TIME_ZONE = 'Asia/Kolkata'
 
 # ⚠️ Replace with your actual Gmail + App Password
 #EMAIL_HOST_USER = 'harikrishnapagilla@gmail.com'
-#EMAIL_HOST_PASSWORD = 'rpaylyqxrctoronj'   # ✅ this must be your Google App Password
+#EMAIL_HOST_PASSWORD = ''   # ✅ this must be your Google App Password
 #DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Optional: recipients list
-#ALERT_RECIPIENTS = ['saimanichandra2580@gmail.com']
+#ALERT_RECIPIENTS = ['']
 
 # Celery (disabled)
 # CELERY_BROKER_URL = ''
@@ -198,8 +198,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # =====================
 # TWILIO SMS SETTINGS
 # =====================
-TWILIO_ACCOUNT_SID = "AC9850ab745d29cbf41f16cf69bc61131c"
-TWILIO_AUTH_TOKEN = "5e63a065118e90c6b9177e7c74f238ad"
+TWILIO_ACCOUNT_SID = ""#enter twillo account sid
+TWILIO_AUTH_TOKEN = ""# enter twillo auth token
 TWILIO_FROM_NUMBER = "+12314420857"    # your Twilio phone number
 ADMIN_PHONE_NUMBER = "+916303462648"   # your personal mobile number
 
@@ -209,7 +209,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'harikrishnapagilla@gmail.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'rpaylyqxrctoronj')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')#enter your email password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ALERT_RECIPIENTS = [os.getenv('ALERT_RECIPIENT', EMAIL_HOST_USER)]
 
